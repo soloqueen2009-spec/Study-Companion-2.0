@@ -1,0 +1,39 @@
+{
+  "name": "Study Companion 2.0",
+  "short_name": "Study Companion",
+  "description": "A focused study planner and revision app for one student.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#111827",
+  "orientation": "any",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Start Focus Mode",
+      "url": "/revision",
+      "description": "Jump directly to the focus timer"
+    },
+    {
+      "name": "Quick Update",
+      "url": "/",
+      "description": "Log today's study progress"
+    }
+  ]
+}
