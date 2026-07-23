@@ -425,6 +425,67 @@ function formatTimerDisplay(totalSeconds) {
   return `${mins}:${secs}`;
 }
 
+// ── Timer persistence (survives page refreshes) ─────────────────────────────
+const TIMER_STORAGE_KEY = 'study-companion-timer-state';
+
+function saveTimerState(fs) {
+  try {
+    const now = Date.now();
+    const payload = {
+      mode: fs.mode,
+      studySeconds: fs.studySeconds,
+      breakSeconds: fs.breakSeconds,
+      isRunning: fs.isRunning,
+      savedAt: now,
+      // If running, store endTimestamp so we can compute elapsed time on reload
+      ...(fs.isRunning ? { endTimestamp: now + fs.remainingSeconds * 1000 } : {}),
+      // If paused / idle, store the remaining directly
+      ...(!fs.isRunning ? { pausedRemaining: fs.remainingSeconds } : {})
+    };
+    localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(payload));
+  } catch { /* ignore quota errors */ }
+}
+
+function loadSavedTimerState() {
+  try {
+    const raw = localStorage.getItem(TIMER_STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    const now = Date.now();
+
+    if (data.isRunning && data.endTimestamp) {
+      // How much time is left based on the saved end timestamp?
+      const remaining = Math.max(0, Math.floor((data.endTimestamp - now) / 1000));
+      return {
+        mode: data.mode || 'study',
+        remainingSeconds: remaining,
+        isRunning: remaining > 0,         // only keep running if time hasn't fully elapsed
+        studySeconds: data.studySeconds || 25 * 60,
+        breakSeconds: data.breakSeconds || 5 * 60,
+        expired: remaining <= 0,          // flag so we can notify the user
+        focusIndex: data.focusIndex || 0
+      };
+    }
+
+    // Paused or idle timer → restore remaining as-is, stay paused
+    return {
+      mode: data.mode || 'study',
+      remainingSeconds: data.pausedRemaining || data.remainingSeconds || 25 * 60,
+      isRunning: false,
+      studySeconds: data.studySeconds || 25 * 60,
+      breakSeconds: data.breakSeconds || 5 * 60,
+      expired: false,
+      focusIndex: data.focusIndex || 0
+    };
+  } catch {
+    return null;
+  }
+}
+
+function clearTimerState() {
+  try { localStorage.removeItem(TIMER_STORAGE_KEY); } catch { /* ignore */ }
+}
+
 function getStudyWindowMinutes(now) {
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const eveningFinish = 22 * 60;
@@ -2727,6 +2788,28 @@ function App() {
     studySeconds: defaultStudySeconds,
     breakSeconds: defaultBreakSeconds
   });
+  const [timerNotice, setTimerNotice] = useState('');
+
+  // Restore saved timer state on initial mount
+  useEffect(() => {
+    const saved = loadSavedTimerState();
+    if (saved) {
+      if (saved.expired) {
+        setTimerNotice('Your study session ended while you were away. Tap Start to begin a new block.');
+      }
+      setFocusState((prev) => ({
+        ...prev,
+        mode: saved.mode,
+        remainingSeconds: saved.remainingSeconds,
+        isRunning: saved.isRunning,
+        studySeconds: saved.studySeconds,
+        breakSeconds: saved.breakSeconds
+      }));
+      if (saved.focusIndex !== undefined) {
+        setFocusIndex(saved.focusIndex);
+      }
+    }
+  }, []);
 
   // Reset timer when plan changes or task index changes
   useEffect(() => {
@@ -2738,17 +2821,18 @@ function App() {
     }));
   }, [defaultStudySeconds, focusIndex]);
 
-  // Timer tick
+  // Timer tick + persist
   useEffect(() => {
     if (!focusState.isRunning) return undefined;
     const interval = setInterval(() => {
       setFocusState((prev) => {
         if (prev.remainingSeconds <= 1) {
+          clearTimerState();
           if (prev.mode === 'study') {
-            // Study block finished → auto-switch to break
+            setTimerNotice('Study block finished! Time for a break.');
             return { ...prev, mode: 'break', remainingSeconds: prev.breakSeconds, isRunning: false };
           }
-          // Break finished → auto-switch to next study block
+          setTimerNotice('Break finished! Next study block ready.');
           return { ...prev, mode: 'study', remainingSeconds: prev.studySeconds, isRunning: false };
         }
         return { ...prev, remainingSeconds: prev.remainingSeconds - 1 };
@@ -2757,22 +2841,36 @@ function App() {
     return () => clearInterval(interval);
   }, [focusState.isRunning, focusState.mode, focusState.breakSeconds, focusState.studySeconds]);
 
-  const startFocus = () => setFocusState((prev) => ({ ...prev, isRunning: true }));
-  const pauseFocus = () => setFocusState((prev) => ({ ...prev, isRunning: false }));
+  // Persist timer state whenever it changes
+  useEffect(() => {
+    if (focusState.isRunning) {
+      saveTimerState(focusState);
+    } else {
+      const timeout = setTimeout(() => saveTimerState(focusState), 100);
+      return () => clearTimeout(timeout);
+    }
+  }, [focusState]);
+
+  const startFocus = () => { setFocusState((prev) => ({ ...prev, isRunning: true })); setTimerNotice(''); };
+  const pauseFocus = () => {
+    setFocusState((prev) => {
+      const next = { ...prev, isRunning: false };
+      saveTimerState(next);
+      return next;
+    });
+    setTimerNotice('');
+  };
   const resumeFocus = () => setFocusState((prev) => ({ ...prev, isRunning: true }));
-  const skipBreak = () => setFocusState((prev) => ({ ...prev, mode: 'study', remainingSeconds: prev.studySeconds, isRunning: false }));
+  const skipBreak = () => { clearTimerState(); setFocusState((prev) => ({ ...prev, mode: 'study', remainingSeconds: prev.studySeconds, isRunning: false })); setTimerNotice(''); };
   const nextTask = () => {
     if (focusIndex < planTasks.length - 1) {
+      clearTimerState();
       setFocusIndex(focusIndex + 1);
-      setFocusState((prev) => ({
-        ...prev,
-        mode: 'study',
-        remainingSeconds: defaultStudySeconds,
-        isRunning: false
-      }));
+      setFocusState((prev) => ({ ...prev, mode: 'study', remainingSeconds: defaultStudySeconds, isRunning: false }));
+      setTimerNotice('');
     }
   };
-  const restartFocus = () => setFocusState((prev) => ({ ...prev, mode: 'study', remainingSeconds: prev.studySeconds, isRunning: true }));
+  const restartFocus = () => { clearTimerState(); setFocusState((prev) => ({ ...prev, mode: 'study', remainingSeconds: prev.studySeconds, isRunning: true })); setTimerNotice(''); };
 
   const handleStartEvening = () => {
     const nextPlan = createGeneratedPlan({ ...state, plannerProfile: state.plannerProfile }, new Date());
