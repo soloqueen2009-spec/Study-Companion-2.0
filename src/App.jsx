@@ -3,6 +3,286 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 const selectOptions = ['Not started', 'Pending', 'Done'];
 
+// ── Class 12 CBSE Syllabus ──────────────────────────────────────────────────
+const CBSE_SUBJECTS_CONFIG = [
+  {
+    name: 'Physics',
+    color: '#60a5fa',
+    focus: 'Class 12 CBSE',
+    chapters: [
+      'Electric Charges and Fields',
+      'Electrostatic Potential and Capacitance',
+      'Current Electricity',
+      'Moving Charges and Magnetism',
+      'Magnetism and Matter',
+      'Electromagnetic Induction',
+      'Alternating Current',
+      'Electromagnetic Waves',
+      'Ray Optics and Optical Instruments',
+      'Wave Optics',
+      'Dual Nature of Radiation and Matter',
+      'Atoms',
+      'Nuclei',
+      'Semiconductor Electronics'
+    ]
+  },
+  {
+    name: 'Chemistry',
+    color: '#34d399',
+    focus: 'Class 12 CBSE',
+    chapters: [
+      'Solutions',
+      'Electrochemistry',
+      'Chemical Kinetics',
+      'd- and f-Block Elements',
+      'Coordination Compounds',
+      'Haloalkanes and Haloarenes',
+      'Alcohols, Phenols and Ethers',
+      'Aldehydes, Ketones and Carboxylic Acids',
+      'Amines',
+      'Biomolecules'
+    ]
+  },
+  {
+    name: 'Mathematics',
+    color: '#fbbf24',
+    focus: 'Class 12 CBSE',
+    chapters: [
+      'Relations and Functions',
+      'Inverse Trigonometric Functions',
+      'Matrices',
+      'Determinants',
+      'Continuity and Differentiability',
+      'Applications of Derivatives',
+      'Integrals',
+      'Applications of Integrals',
+      'Differential Equations',
+      'Vector Algebra',
+      'Three Dimensional Geometry',
+      'Linear Programming',
+      'Probability'
+    ]
+  },
+  {
+    name: 'Computer Science',
+    color: '#a78bfa',
+    focus: 'Class 12 CBSE',
+    chapters: [
+      'Python Revision',
+      'Functions',
+      'File Handling',
+      'Exception Handling',
+      'MySQL',
+      'SQL Queries',
+      'Computer Networks'
+    ]
+  },
+  {
+    name: 'English',
+    color: '#f472b6',
+    focus: 'Class 12 CBSE',
+    chapters: [
+      'Reading Skills',
+      'Writing Skills',
+      'Flamingo',
+      'Vistas'
+    ]
+  }
+];
+
+// Topic → chapter hint mapping for voice parser improvement
+const CBSE_TOPIC_HINTS = [
+  // Physics
+  { keywords: ['kirchhoff', 'ohm', 'resistivity', 'conductivity', 'drift velocity'], subject: 'physics', chapter: 'Current Electricity' },
+  { keywords: ['lenz', 'faraday', 'mutual inductance', 'self inductance', 'eddy'], subject: 'physics', chapter: 'Electromagnetic Induction' },
+  { keywords: ['gauss', 'coulomb', 'dipole', 'electric field', 'flux'], subject: 'physics', chapter: 'Electric Charges and Fields' },
+  { keywords: ['capacitance', 'capacitor', 'dielectric'], subject: 'physics', chapter: 'Electrostatic Potential and Capacitance' },
+  { keywords: ['biot-savart', 'ampere', 'cyclotron', 'magnetic force', 'lorentz'], subject: 'physics', chapter: 'Moving Charges and Magnetism' },
+  { keywords: ['hysteresis', 'magnetic moment', 'magnetisation'], subject: 'physics', chapter: 'Magnetism and Matter' },
+  { keywords: ['transformer', 'ac', 'impedance', 'resonance', 'rms'], subject: 'physics', chapter: 'Alternating Current' },
+  { keywords: ['displacement current', 'em wave', 'electromagnetic wave'], subject: 'physics', chapter: 'Electromagnetic Waves' },
+  { keywords: ['lens', 'mirror', 'refraction', 'microscope', 'telescope', 'snell', 'prism'], subject: 'physics', chapter: 'Ray Optics and Optical Instruments' },
+  { keywords: ['interference', 'diffraction', 'polarisation', 'huygens', 'young'], subject: 'physics', chapter: 'Wave Optics' },
+  { keywords: ['photoelectric', 'einstein', 'planck', 'de broglie'], subject: 'physics', chapter: 'Dual Nature of Radiation and Matter' },
+  { keywords: ['rutherford', 'bohr', 'hydrogen spectrum', 'atomic'], subject: 'physics', chapter: 'Atoms' },
+  { keywords: ['radioactive', 'half life', 'binding energy', 'fission', 'fusion', 'nuclear'], subject: 'physics', chapter: 'Nuclei' },
+  { keywords: ['pn junction', 'diode', 'transistor', 'logic gate', 'zener'], subject: 'physics', chapter: 'Semiconductor Electronics' },
+  // Chemistry
+  { keywords: ['raoult', 'henry', 'colligative', 'osmotic', 'vapour pressure'], subject: 'chemistry', chapter: 'Solutions' },
+  { keywords: ['galvanic', 'electrolytic', 'nernst', 'conductance', 'cell potential'], subject: 'chemistry', chapter: 'Electrochemistry' },
+  { keywords: ['rate constant', 'activation energy', 'order of reaction', 'arrhenius'], subject: 'chemistry', chapter: 'Chemical Kinetics' },
+  { keywords: ['lanthanoid', 'actinoid', 'transition element'], subject: 'chemistry', chapter: 'd- and f-Block Elements' },
+  { keywords: ['ligand', 'crystal field', 'chelate', 'coordination sphere'], subject: 'chemistry', chapter: 'Coordination Compounds' },
+  { keywords: ['haloalkane', 'haloarene', 'sn1', 'sn2', 'wurtz', 'grignard'], subject: 'chemistry', chapter: 'Haloalkanes and Haloarenes' },
+  { keywords: ['alcohol', 'phenol', 'ether'], subject: 'chemistry', chapter: 'Alcohols, Phenols and Ethers' },
+  { keywords: ['aldehyde', 'ketone', 'carboxylic acid', 'cannizzaro', 'aldol'], subject: 'chemistry', chapter: 'Aldehydes, Ketones and Carboxylic Acids' },
+  { keywords: ['amine', 'diazonium', 'amide'], subject: 'chemistry', chapter: 'Amines' },
+  { keywords: ['carbohydrate', 'protein', 'vitamin', 'enzyme', 'dna', 'rna', 'biomolecule'], subject: 'chemistry', chapter: 'Biomolecules' },
+  // Mathematics
+  { keywords: ['relation', 'equivalence', 'function type', 'one-one', 'onto'], subject: 'mathematics', chapter: 'Relations and Functions' },
+  { keywords: ['inverse', 'arcsin', 'arccos', 'arctan', 'principal value'], subject: 'mathematics', chapter: 'Inverse Trigonometric Functions' },
+  { keywords: ['matrix', 'determinant', 'inverse of matrix', 'cramer'], subject: 'mathematics', chapter: 'Matrices' },
+  { keywords: ['exercise 7', 'integration', 'integral', 'definite integral', 'indefinite'], subject: 'mathematics', chapter: 'Integrals' },
+  { keywords: ['exercise 6', 'derivative', 'tangent', 'normal', 'maxima', 'minima'], subject: 'mathematics', chapter: 'Applications of Derivatives' },
+  { keywords: ['differential equation', 'homogeneous', 'integrating factor'], subject: 'mathematics', chapter: 'Differential Equations' },
+  { keywords: ['vector', 'dot product', 'cross product', 'scalar triple'], subject: 'mathematics', chapter: 'Vector Algebra' },
+  { keywords: ['line', 'plane', 'distance', 'angle between'], subject: 'mathematics', chapter: 'Three Dimensional Geometry' },
+  { keywords: ['probability', 'bayes', 'random variable', 'binomial', 'bernoulli'], subject: 'mathematics', chapter: 'Probability' },
+  // Computer Science
+  { keywords: ['python', 'list', 'tuple', 'dictionary', 'string slicing'], subject: 'computer science', chapter: 'Python Revision' },
+  { keywords: ['function def', 'lambda', 'recursion', 'argument'], subject: 'computer science', chapter: 'Functions' },
+  { keywords: ['file', 'open', 'read', 'write', 'append', 'csv'], subject: 'computer science', chapter: 'File Handling' },
+  { keywords: ['exception', 'try', 'except', 'finally', 'raise'], subject: 'computer science', chapter: 'Exception Handling' },
+  { keywords: ['mysql', 'database', 'table', 'create', 'insert', 'select'], subject: 'computer science', chapter: 'MySQL' },
+  { keywords: ['sql', 'query', 'join', 'group by', 'order by', 'where'], subject: 'computer science', chapter: 'SQL Queries' },
+  { keywords: ['network', 'tcp', 'ip', 'protocol', 'topology', 'lan', 'wan'], subject: 'computer science', chapter: 'Computer Networks' },
+  // English
+  { keywords: ['comprehension', 'unseen', 'reading passage'], subject: 'english', chapter: 'Reading Skills' },
+  { keywords: ['notice', 'article', 'speech', 'debate', 'letter writing', 'report'], subject: 'english', chapter: 'Writing Skills' },
+  { keywords: ['flamingo', 'poem', 'prose'], subject: 'english', chapter: 'Flamingo' },
+  { keywords: ['vistas', 'supplementary', 'reader'], subject: 'english', chapter: 'Vistas' }
+];
+
+// ── User correction memory ──────────────────────────────────────────────────
+// Learns from user edits to the extracted voice data
+const CORRECTIONS_KEY = 'study-companion-voice-corrections';
+
+function loadUserCorrections() {
+  try {
+    const stored = localStorage.getItem(CORRECTIONS_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveUserCorrection(speechText, correctedField, correctedValue) {
+  const all = loadUserCorrections();
+  const key = speechText.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+  if (!key || !correctedValue) return;
+  if (!all[key]) all[key] = {};
+  all[key][correctedField] = correctedValue;
+  try {
+    localStorage.setItem(CORRECTIONS_KEY, JSON.stringify(all));
+  } catch { /* ignore storage limits */ }
+}
+
+function getCorrectedText(speechText) {
+  const all = loadUserCorrections();
+  const key = speechText.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+  return all[key] || null;
+}
+
+// ── Syntax helpers ──────────────────────────────────────────────────────────
+function splitTranscriptBySubject(text) {
+  // Split on sentence boundaries that likely introduce a new subject
+  const segments = [];
+  const sentences = text.split(/[.;]\s*/).filter(Boolean);
+  
+  const subjectPatterns = [
+    { regex: /\b(physics|phy)\b/i, name: 'Physics' },
+    { regex: /\b(chemistry|chem)\b/i, name: 'Chemistry' },
+    { regex: /\b(maths|mathematics|math)\b/i, name: 'Mathematics' },
+    { regex: /\b(computer science|cs|computer)\b/i, name: 'Computer Science' },
+    { regex: /\b(english|eng)\b/i, name: 'English' }
+  ];
+
+  let currentSubject = '';
+  for (const sentence of sentences) {
+    const trimmed = sentence.trim();
+    if (!trimmed) continue;
+    
+    // Check if this sentence introduces a new subject
+    let detectedSubject = '';
+    for (const sp of subjectPatterns) {
+      if (sp.regex.test(trimmed)) {
+        detectedSubject = sp.name;
+        break;
+      }
+    }
+    
+    if (detectedSubject) {
+      currentSubject = detectedSubject;
+    }
+    
+    segments.push({ text: trimmed, subjectHint: currentSubject });
+  }
+  
+  // Merge consecutive segments with same subject hint
+  const merged = [];
+  for (const seg of segments) {
+    const last = merged[merged.length - 1];
+    if (last && last.subjectHint === seg.subjectHint) {
+      last.text += '. ' + seg.text;
+    } else {
+      merged.push({ ...seg });
+    }
+  }
+  
+  return merged;
+}
+
+// ── Syllabus helpers ─────────────────────────────────────────────────────────
+function createCbseSubject(config) {
+  const subjectId = `subject-${Date.now()}`;
+  let lastChapterId = '';
+  let lastTopicId = '';
+
+  const chapters = config.chapters.map((chName, i) => {
+    const chId = `chapter-${Date.now()}-${i}`;
+    const topicId = `topic-${Date.now()}-${i}`;
+    if (i === 0) {
+      lastChapterId = chId;
+      lastTopicId = topicId;
+    }
+    return {
+      id: chId,
+      name: chName,
+      topics: [
+        {
+          id: topicId,
+          name: 'General',
+          schoolNotes: 'Not started',
+          homework: 'Not started',
+          revision: 'Not started',
+          mcq: 'Not started',
+          tuitionNotes: 'Not started',
+          jee: 'Not started',
+          pyqs: 'Not started',
+          practiceQuestions: 'Not started'
+        }
+      ]
+    };
+  });
+
+  return {
+    id: subjectId,
+    name: config.name,
+    color: config.color,
+    focus: config.focus,
+    lastChapterId,
+    lastTopicId,
+    homework: 'Not started',
+    backlog: 'Not started',
+    revision: 'Not started',
+    chapters
+  };
+}
+
+function seedCbseSyllabus(existingSubjects) {
+  const existingNames = new Set(existingSubjects.map((s) => s.name.toLowerCase().trim()));
+  const added = [];
+
+  CBSE_SUBJECTS_CONFIG.forEach((config) => {
+    if (existingNames.has(config.name.toLowerCase().trim())) return; // already exists
+    const newSubject = createCbseSubject(config);
+    existingSubjects.push(newSubject);
+    added.push(config.name);
+  });
+
+  return added;
+}
+
 function createDefaultSubjects() {
   return [];
 }
@@ -60,13 +340,11 @@ const defaultState = {
     backlog: '',
     revisionDue: '',
     upcomingExams: '',
-    tuitionMaths: '',
-    tuitionPhysics: '',
-    recoveryMode: false,
-    tiredMode: false,
-    moreStudyMode: false
+    availableStudyTime: 60,
+    energyLevel: 'normal'
   },
-  generatedPlan: { generatedAt: null, summary: '', tasks: [] },
+  generatedPlan: { generatedAt: null, summary: '', tasks: [], methodology: 'balanced' },
+  plannerMethodology: 'balanced',
   lastQuickSubjectId: '',
   lastQuickType: ''
 };
@@ -87,12 +365,36 @@ function readState() {
   try {
     const stored = localStorage.getItem('study-companion-state');
     const parsed = stored ? JSON.parse(stored) : null;
-    if (!parsed || isLegacySeededState(parsed)) return defaultState;
+    
+    // If no saved state or legacy state, seed CBSE syllabus into a fresh default
+    if (!parsed || isLegacySeededState(parsed)) {
+      const freshSubjects = createDefaultSubjects();
+      seedCbseSyllabus(freshSubjects);
+      // Build a fresh state and persist it so CBSE subjects survive reload
+      const freshState = { ...defaultState, subjects: freshSubjects, __cbseSeeded: true };
+      localStorage.setItem('study-companion-state', JSON.stringify(freshState));
+      return freshState;
+    }
+    
+    // Ensure subjects array exists
+    const subjects = Array.isArray(parsed.subjects) ? parsed.subjects : createDefaultSubjects();
+    
+    // Seed CBSE syllabus once (only adds missing subjects, never duplicates)
+    if (!parsed.__cbseSeeded) {
+      const added = seedCbseSyllabus(subjects);
+      if (added.length > 0) {
+        // Persist the seeded subjects immediately so they survive page reload
+        parsed.__cbseSeeded = true;
+        parsed.subjects = subjects;
+        localStorage.setItem('study-companion-state', JSON.stringify(parsed));
+      }
+    }
+    
     return {
       ...defaultState,
       ...parsed,
       tasks: Array.isArray(parsed.tasks) ? parsed.tasks : defaultState.tasks,
-      subjects: Array.isArray(parsed.subjects) ? parsed.subjects : createDefaultSubjects(),
+      subjects,
       bagItems: Array.isArray(parsed.bagItems) ? parsed.bagItems : createDefaultBagItems(),
       weeklyReview: { text: parsed.weeklyReview?.text || '', updatedAt: parsed.weeklyReview?.updatedAt || null },
       monthlyReflection: { text: parsed.monthlyReflection?.text || '', updatedAt: parsed.monthlyReflection?.updatedAt || null },
@@ -169,129 +471,522 @@ function collectSubjectPlannerItems(subjects) {
   return { homeworkItems, backlogItems, revisionItems };
 }
 
-function parseVoiceUpdate(text, subjects) {
-  const normalized = (text || '').toLowerCase();
-  let subject = null;
-  const subjectCandidates = subjects.filter((item) => normalized.includes(item.name.toLowerCase())) || [];
-  if (subjectCandidates.length === 1) {
-    subject = subjectCandidates[0];
-  } else if (subjectCandidates.length > 1) {
-    subject = null;
-  } else {
-    const synonyms = [
-      ['maths', 'mathematics'],
-      ['physics', 'phy'],
-      ['chemistry', 'chem'],
-      ['computer science', 'cs'],
-      ['english', 'eng']
-    ];
-    const match = synonyms.find(([primary, alt]) => normalized.includes(primary) || normalized.includes(alt));
-    if (match) {
-      const label = match[0];
-      subject = subjects.find((item) => item.name.toLowerCase() === label) || subjects.find((item) => item.name.toLowerCase().includes(label));
+// Simple fuzzy match: returns items sorted by similarity score (higher = better)
+function fuzzyFind(query, items, getName) {
+  if (!query || !items.length) return [];
+  const q = query.toLowerCase().trim();
+  const scored = items.map((item) => {
+    const name = getName(item).toLowerCase().trim();
+    if (name === q) return { item, score: 100 };
+    if (name.includes(q)) return { item, score: 80 };
+    if (q.includes(name)) return { item, score: 70 };
+    const queryWords = q.split(/\s+/).filter(Boolean);
+    const nameWords = name.split(/\s+/).filter(Boolean);
+    let wordMatches = 0;
+    for (const qw of queryWords) {
+      for (const nw of nameWords) {
+        if (nw.includes(qw) || qw.includes(nw)) {
+          wordMatches++;
+          break;
+        }
+      }
+    }
+    const wordScore = nameWords.length > 0 ? (wordMatches / Math.max(nameWords.length, queryWords.length)) * 60 : 0;
+    let charOverlap = 0;
+    for (const ch of q) {
+      if (name.includes(ch)) charOverlap++;
+    }
+    const charScore = q.length > 0 ? (charOverlap / q.length) * 40 : 0;
+    return {
+      item,
+      score: Math.max(wordScore, charScore)
+    };
+  });
+  return scored.sort((a, b) => b.score - a.score).filter((s) => s.score >= 25);
+}
+
+function bestFuzzyMatch(query, items, getName) {
+  const results = fuzzyFind(query, items, getName);
+  if (results.length > 0) return results[0];
+  return null;
+}
+
+// ── Levenshtein distance for spelling-tolerant matching ─────────────────────
+function levenshteinDistance(a, b) {
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      const cost = a[j - 1] === b[i - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost);
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+function normalizedLevenshteinSimilarity(a, b) {
+  if (!a || !b) return 0;
+  const distance = levenshteinDistance(a.toLowerCase().trim(), b.toLowerCase().trim());
+  const maxLen = Math.max(a.length, b.length);
+  return maxLen > 0 ? 1 - distance / maxLen : 0;
+}
+
+// Strip punctuation and common filler words for comparison
+function normalizeForMatch(text) {
+  return text
+    .toLowerCase()
+    .replace(/[,.\-';:!?()]/g, ' ')
+    .replace(/\b(and|the|a|an|in|of|for|to|on|at|by|with|from|till|until|up|down)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// ── Action detection ────────────────────────────────────────────────────────
+function detectAction(normalized) {
+  if (/\b(completed|finished|did|done|covered|studied|went through|did exercise)\b/i.test(normalized)) return 'completed';
+  if (/\b(revised|revision|reviewed|review|revise)\b/i.test(normalized)) return 'revised';
+  if (/\b(homework|assignment|worksheet|practice|exercise due|homework due)\b/i.test(normalized)) return 'homework';
+  if (/\b(pending|backlog|not done|left|remaining)\b/i.test(normalized)) return 'pending';
+  return null;
+}
+
+function detectType(normalized) {
+  if (/\btuition\b/i.test(normalized)) return 'Tuition';
+  if (/\bschool\b/i.test(normalized)) return 'School';
+  return 'School'; // default
+}
+
+// ── Subject detection with aliases + fuzzy ──────────────────────────────────
+const SUBJECT_ALIASES = {
+  mathematics: ['math', 'maths', 'mathematics', 'mathmatics', 'mathamatics'],
+  physics: ['physics', 'phy', 'phys'],
+  chemistry: ['chemistry', 'chem', 'chm', 'chemitry'],
+  english: ['english', 'eng'],
+  'computer science': ['computer science', 'computer', 'cs', 'computers']
+};
+
+function detectSubject(normalized, subjects) {
+  // 1. Direct name match in transcript
+  for (const subject of subjects) {
+    const subLower = subject.name.toLowerCase();
+    if (normalized.includes(subLower)) {
+      return { subject, confidence: 100, method: 'direct' };
     }
   }
 
-  let type = '';
-  if (normalized.includes('tuition')) type = 'Tuition';
-  else if (normalized.includes('school')) type = 'School';
-
-  let homework = '';
-  const homeworkMatch = text.match(/homework(?:\s+is|\s*[:\-]\s*|\s+for)?\s*([^.;\n]+)/i);
-  if (homeworkMatch) {
-    homework = homeworkMatch[1].trim();
-  }
-
-  let chapterId = '';
-  let topicId = '';
-  if (subject) {
-    const chapterCandidates = subject.chapters.filter((chapter) => normalized.includes(chapter.name.toLowerCase()));
-    if (chapterCandidates.length === 1) {
-      chapterId = chapterCandidates[0].id;
-      const chapter = chapterCandidates[0];
-      const topicCandidates = chapter.topics.filter((topic) => normalized.includes(topic.name.toLowerCase()));
-      if (topicCandidates.length === 1) {
-        topicId = topicCandidates[0].id;
+  // 2. Alias match
+  for (const subject of subjects) {
+    const subLower = subject.name.toLowerCase();
+    for (const [key, aliases] of Object.entries(SUBJECT_ALIASES)) {
+      if (subLower.includes(key) || key.includes(subLower)) {
+        for (const alias of aliases) {
+          if (normalized.includes(alias)) {
+            return { subject, confidence: 90, method: 'alias' };
+          }
+        }
       }
     }
   }
 
-  return {
-    subjectId: subject?.id || '',
-    chapterId,
-    topicId,
-    homework,
-    type
-  };
-}
-
-function createGeneratedPlan(state, now) {
-  const profile = state.plannerProfile || defaultState.plannerProfile;
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  const isSaturday = dayOfWeek === 6;
-
-  // Parse tuition times (e.g., 19:50 for 7:50 PM)
-  const parseTime = (timeStr) => {
-    if (!timeStr) return null;
-    const parts = timeStr.split(':');
-    return Number(parts[0]) * 60 + Number(parts[1]);
-  };
-
-  // Saturday: no tuition at all
-  const tuitionMathsMin = isSaturday ? null : parseTime(profile.tuitionMaths);
-  const tuitionPhysicsMin = isSaturday ? null : parseTime(profile.tuitionPhysics);
-  const tuitionDuration = 100; // 1h 40min
-
-  // Determine tuition phase
-  const isInTuition = (tMin) => tMin !== null && currentMinutes >= tMin && currentMinutes < tMin + tuitionDuration;
-  const isTuitionSoon = (tMin) => tMin !== null && currentMinutes < tMin && tMin - currentMinutes <= 120;
-  const isAfterTuition = (tMin) => tMin !== null && currentMinutes >= tMin + tuitionDuration && currentMinutes - (tMin + tuitionDuration) <= 120;
-
-  const mathsTuitionActive = isInTuition(tuitionMathsMin);
-  const physicsTuitionActive = isInTuition(tuitionPhysicsMin);
-  const mathsSoon = isTuitionSoon(tuitionMathsMin);
-  const physicsSoon = isTuitionSoon(tuitionPhysicsMin);
-  const mathsAfter = isAfterTuition(tuitionMathsMin);
-  const physicsAfter = isAfterTuition(tuitionPhysicsMin);
-
-  const tuitionSoon = mathsSoon || physicsSoon;
-  const afterTuition = mathsAfter || physicsAfter;
-  const tuitionActive = mathsTuitionActive || physicsTuitionActive;
-
-  // Available study time
-  let availableMinutes = getStudyWindowMinutes(now);
-  if (profile.moreStudyMode) availableMinutes = Math.min(availableMinutes, 240);
-  else availableMinutes = Math.min(availableMinutes, 180);
-
-  // Saturday: more time available
-  if (isSaturday) {
-    availableMinutes = Math.min(availableMinutes, 240);
+  // 3. Fuzzy match fallback
+  const best = bestFuzzyMatch(normalized, subjects, s => s.name);
+  if (best && best.score >= 40) {
+    return { subject: best.item, confidence: best.score, method: 'fuzzy' };
   }
 
-  // Reduce available time if tuition is upcoming
-  if (tuitionSoon) {
-    const earliestTuition = [tuitionMathsMin, tuitionPhysicsMin]
-      .filter((t) => t !== null && t > currentMinutes)
-      .sort((a, b) => a - b)[0];
-    if (earliestTuition) {
-      availableMinutes = Math.min(availableMinutes, earliestTuition - currentMinutes);
+  return { subject: null, confidence: 0, method: 'none' };
+}
+
+// ── Chapter detection with fuzzy + hints + punctuation-stripped matching ────
+function detectChapter(normalized, subject, topicKeywordsFound) {
+  if (!subject || !subject.chapters.length) {
+    return { chapter: null, confidence: 0 };
+  }
+
+  const chapters = subject.chapters;
+
+  // 1. Check CBSE_TOPIC_HINTS first for keyword-based matches
+  const subjectKey = subject.name.toLowerCase();
+  for (const hint of CBSE_TOPIC_HINTS) {
+    if (hint.subject !== subjectKey) continue;
+    for (const kw of hint.keywords) {
+      if (normalized.includes(kw)) {
+        const match = chapters.find(ch => ch.name === hint.chapter);
+        if (match) {
+          // Mark keywords found for topic detection
+          hint.keywords.forEach(k => { if (normalized.includes(k)) topicKeywordsFound.add(k); });
+          return { chapter: match, confidence: 85, method: 'hint' };
+        }
+      }
     }
   }
 
-  // If in tuition, plan light review after
-  if (tuitionActive) {
-    availableMinutes = Math.min(availableMinutes, 30);
+  // 2. Normalized (punctuation-stripped) exact match
+  const normClean = normalizeForMatch(normalized);
+  for (const ch of chapters) {
+    const chClean = normalizeForMatch(ch.name);
+    if (normClean.includes(chClean)) {
+      return { chapter: ch, confidence: 95, method: 'exact' };
+    }
   }
 
-  // Mode-based adjustments
-  const baseBlock = tuitionSoon ? 20 : afterTuition ? 20 : profile.tiredMode ? 20 : profile.moreStudyMode ? 35 : 25;
-  const breakLength = afterTuition ? 10 : profile.tiredMode ? 5 : 8;
-  const maxStudyTasks = tuitionActive ? 1 : afterTuition ? 2 : profile.recoveryMode ? 2 : profile.tiredMode ? 2 : 3;
+  // 3. Word-overlap fuzzy match
+  const fuzzyResult = bestFuzzyMatch(normalized, chapters, ch => ch.name);
+  if (fuzzyResult && fuzzyResult.score >= 35) {
+    return { chapter: fuzzyResult.item, confidence: fuzzyResult.score, method: 'fuzzy' };
+  }
+
+  // 4. Levenshtein similarity fallback (handles spelling mistakes)
+  let bestLev = { chapter: null, confidence: 0 };
+  for (const ch of chapters) {
+    const sim = normalizedLevenshteinSimilarity(normalized, ch.name);
+    if (sim > bestLev.confidence && sim > 0.5) {
+      bestLev = { chapter: ch, confidence: Math.round(sim * 100), method: 'levenshtein' };
+    }
+    // Also check chapter name words individually
+    const chWords = ch.name.toLowerCase().split(/\s+/);
+    for (const word of chWords) {
+      if (word.length > 3 && normalized.includes(word)) {
+        bestLev = { chapter: ch, confidence: Math.max(bestLev.confidence, 70), method: 'wordMatch' };
+        break;
+      }
+    }
+  }
+
+  if (bestLev.chapter) return bestLev;
+
+  return { chapter: null, confidence: 0 };
+}
+
+// ── Topic detection ─────────────────────────────────────────────────────────
+function detectTopic(normalized, chapter) {
+  if (!chapter || !chapter.topics.length) {
+    return { topic: null, confidence: 0 };
+  }
+
+  // Check user-added topics
+  for (const topic of chapter.topics) {
+    const tClean = normalizeForMatch(topic.name);
+    const nClean = normalizeForMatch(normalized);
+    if (nClean.includes(tClean)) {
+      return { topic, confidence: 85 };
+    }
+    // Fuzzy match topic name
+    const fuzzyResult = bestFuzzyMatch(normalized, chapter.topics, t => t.name);
+    if (fuzzyResult && fuzzyResult.score >= 40) {
+      return { topic: fuzzyResult.item, confidence: fuzzyResult.score };
+    }
+  }
+
+  return { topic: null, confidence: 0 };
+}
+
+// ── Confidence scoring ──────────────────────────────────────────────────────
+function computeOverallConfidence(subjectConf, chapterConf, hasText) {
+  if (!hasText) return 0;
+  if (!subjectConf && !chapterConf) return 0;
+  // Weighted: subject matters more (50%), chapter (40%), text length (10%)
+  const weights = { subject: 0.5, chapter: 0.4, text: 0.1 };
+  const textScore = hasText ? 100 : 0;
+  return Math.round(
+    (subjectConf * weights.subject) +
+    (chapterConf * weights.chapter) +
+    (textScore * weights.text)
+  );
+}
+
+// Topic name hints: keyword → { subject, chapter, topic }
+const CBSE_TOPIC_NAME_HINTS = [
+  { keywords: ['capacitor', 'capacitors', 'capacitance'], subject: 'physics', chapter: 'Electrostatic Potential and Capacitance', topic: 'Capacitors' },
+  { keywords: ['potential', 'equipotential'], subject: 'physics', chapter: 'Electrostatic Potential and Capacitance', topic: 'Electrostatic Potential' },
+  { keywords: ['kirchhoff', 'ohm', 'resistivity', 'conductivity', 'drift velocity'], subject: 'physics', chapter: 'Current Electricity', topic: "Ohm's Law" },
+  { keywords: ['biot-savart', 'ampere circuital', 'cyclotron'], subject: 'physics', chapter: 'Moving Charges and Magnetism', topic: 'Biot-Savart Law' },
+  { keywords: ['faraday', 'lenz', 'mutual inductance', 'self inductance', 'eddy'], subject: 'physics', chapter: 'Electromagnetic Induction', topic: "Faraday's Law" },
+  { keywords: ['lens', 'mirror', 'refraction', 'snell', 'prism', 'telescope', 'microscope'], subject: 'physics', chapter: 'Ray Optics and Optical Instruments', topic: 'Ray Optics' },
+  { keywords: ['interference', 'diffraction', 'polarisation', 'huygens', 'young'], subject: 'physics', chapter: 'Wave Optics', topic: 'Interference' },
+  { keywords: ['pn junction', 'diode', 'transistor', 'logic gate', 'zener'], subject: 'physics', chapter: 'Semiconductor Electronics', topic: 'Semiconductor Devices' },
+  { keywords: ['raoult', 'henry', 'colligative', 'osmotic', 'vapour pressure'], subject: 'chemistry', chapter: 'Solutions', topic: 'Colligative Properties' },
+  { keywords: ['galvanic', 'electrolytic', 'nernst', 'conductance', 'cell potential'], subject: 'chemistry', chapter: 'Electrochemistry', topic: 'Electrochemical Cells' },
+  { keywords: ['rate constant', 'activation energy', 'order of reaction', 'arrhenius'], subject: 'chemistry', chapter: 'Chemical Kinetics', topic: 'Rate of Reaction' },
+  { keywords: ['lanthanoid', 'actinoid', 'transition element'], subject: 'chemistry', chapter: 'd- and f-Block Elements', topic: 'Transition Elements' },
+  { keywords: ['ligand', 'crystal field', 'chelate', 'coordination sphere'], subject: 'chemistry', chapter: 'Coordination Compounds', topic: 'Coordination Compounds' },
+  { keywords: ['aldehyde', 'ketone', 'carboxylic acid', 'cannizzaro', 'aldol'], subject: 'chemistry', chapter: 'Aldehydes, Ketones and Carboxylic Acids', topic: 'Aldehydes and Ketones' },
+  { keywords: ['amine', 'diazonium', 'amide'], subject: 'chemistry', chapter: 'Amines', topic: 'Amines' },
+  { keywords: ['carbohydrate', 'protein', 'vitamin', 'enzyme', 'dna', 'rna'], subject: 'chemistry', chapter: 'Biomolecules', topic: 'Biomolecules' },
+  { keywords: ['maxima', 'minima', 'tangent', 'normal', 'increasing', 'decreasing'], subject: 'mathematics', chapter: 'Applications of Derivatives', topic: 'Maxima and Minima' },
+  { keywords: ['integration', 'integral', 'definite integral', 'indefinite'], subject: 'mathematics', chapter: 'Integrals', topic: 'Integration' },
+  { keywords: ['differential equation', 'homogeneous', 'integrating factor'], subject: 'mathematics', chapter: 'Differential Equations', topic: 'Differential Equations' },
+  { keywords: ['vector', 'dot product', 'cross product', 'scalar triple'], subject: 'mathematics', chapter: 'Vector Algebra', topic: 'Vector Algebra' },
+  { keywords: ['line', 'plane', 'distance', 'angle between'], subject: 'mathematics', chapter: 'Three Dimensional Geometry', topic: '3D Geometry' },
+  { keywords: ['probability', 'bayes', 'random variable', 'binomial', 'bernoulli'], subject: 'mathematics', chapter: 'Probability', topic: 'Probability' },
+  { keywords: ['python', 'list', 'tuple', 'dictionary', 'string'], subject: 'computer science', chapter: 'Python Revision', topic: 'Python' },
+  { keywords: ['function', 'lambda', 'recursion', 'argument'], subject: 'computer science', chapter: 'Functions', topic: 'Functions' },
+  { keywords: ['file', 'open', 'read', 'write', 'append', 'csv'], subject: 'computer science', chapter: 'File Handling', topic: 'File Handling' },
+  { keywords: ['exception', 'try', 'except', 'finally', 'raise'], subject: 'computer science', chapter: 'Exception Handling', topic: 'Exception Handling' },
+  { keywords: ['mysql', 'database', 'table', 'create', 'insert', 'select'], subject: 'computer science', chapter: 'MySQL', topic: 'MySQL' },
+  { keywords: ['network', 'tcp', 'ip', 'protocol', 'topology', 'lan', 'wan'], subject: 'computer science', chapter: 'Computer Networks', topic: 'Computer Networks' },
+  { keywords: ['comprehension', 'unseen', 'reading passage'], subject: 'english', chapter: 'Reading Skills', topic: 'Reading Comprehension' },
+  { keywords: ['notice', 'article', 'speech', 'debate', 'letter', 'report'], subject: 'english', chapter: 'Writing Skills', topic: 'Writing' },
+];
+
+/**
+ * Parse a voice transcript and extract subject, chapter, topic, type, action.
+ * Homework is only extracted when explicitly mentioned.
+ */
+function parseVoiceUpdate(transcript, subjects) {
+  const normalized = transcript.toLowerCase().trim();
+  const hasText = normalized.length > 0;
+
+  const result = {
+    subjectId: null,
+    subjectName: "",
+    chapterId: null,
+    chapterName: "",
+    topicId: null,
+    topicName: "",
+    homework: "",
+    type: "School",
+    action: null,
+    actionConfidence: 0,
+    subjectConfidence: 0,
+    chapterConfidence: 0,
+    topicConfidence: 0,
+    confidence: 0,
+    needsConfirmation: false,
+    method: 'none',
+    subjectsFound: [],
+    chaptersFound: [],
+    topicsFound: [],
+    actionsFound: [],
+    decisions: {}
+  };
+
+  if (!hasText) return result;
+
+  // 1. ACTION DETECTION
+  const detectedAction = detectAction(normalized);
+  result.action = detectedAction;
+  result.actionConfidence = detectedAction ? 90 : 0;
+  if (detectedAction) result.actionsFound.push(detectedAction);
+
+  // 2. TYPE DETECTION
+  result.type = detectType(normalized);
+
+  // 3. SUBJECT DETECTION – find ALL candidate subjects
+  const allSubjects = new Map();
+  for (const subject of subjects) {
+    const subLower = subject.name.toLowerCase();
+    if (normalized.includes(subLower)) {
+      allSubjects.set(subject.id, { subject, confidence: 100, method: 'direct' });
+      continue;
+    }
+    for (const [, aliases] of Object.entries(SUBJECT_ALIASES)) {
+      for (const alias of aliases) {
+        if (normalized.includes(alias)) {
+          allSubjects.set(subject.id, { subject, confidence: 90, method: 'alias' });
+          break;
+        }
+      }
+      if (allSubjects.has(subject.id)) break;
+    }
+    if (!allSubjects.has(subject.id)) {
+      const fuzzy = bestFuzzyMatch(normalized, [subject], s => s.name);
+      if (fuzzy && fuzzy.score >= 40) {
+        allSubjects.set(subject.id, { subject, confidence: fuzzy.score, method: 'fuzzy' });
+      }
+    }
+  }
+  // Also check CBSE_TOPIC_HINTS for subject hints
+  for (const hint of CBSE_TOPIC_HINTS) {
+    for (const kw of hint.keywords) {
+      if (normalized.includes(kw)) {
+        const matchSubject = subjects.find(s => s.name.toLowerCase() === hint.subject);
+        if (matchSubject && !allSubjects.has(matchSubject.id)) {
+          allSubjects.set(matchSubject.id, { subject: matchSubject, confidence: 80, method: 'hint-keyword' });
+        }
+        break;
+      }
+    }
+  }
+  const allSorted = Array.from(allSubjects.values()).sort((a, b) => b.confidence - a.confidence);
+  result.subjectsFound = allSorted.map(e => ({ name: e.subject.name, confidence: e.confidence, method: e.method }));
+  const bestSubjectEntry = allSorted.length > 0 ? allSorted[0] : null;
+  const needsMultiSubjectConfirm = allSorted.length > 1 && allSorted[0].confidence - (allSorted[1]?.confidence || 0) < 20;
+  if (bestSubjectEntry) {
+    result.subjectId = bestSubjectEntry.subject.id;
+    result.subjectName = bestSubjectEntry.subject.name;
+    result.subjectConfidence = bestSubjectEntry.confidence;
+    result.method = bestSubjectEntry.method;
+  }
+
+  // 4. CHAPTER + TOPIC DETECTION
+  let bestChapter = null;
+  let bestChapterConf = 0;
+  let bestTopicName = '';
+  let bestTopicConf = 0;
+
+  // Step A: Scan CBSE_TOPIC_NAME_HINTS for topic-level matches
+  const subjectKey = result.subjectName?.toLowerCase() || '';
+  for (const hint of CBSE_TOPIC_NAME_HINTS) {
+    if (subjectKey && hint.subject !== subjectKey) continue;
+    const matchedKeywords = hint.keywords.filter(kw => normalized.includes(kw));
+    if (matchedKeywords.length > 0) {
+      const hintSubject = subjects.find(s => s.name.toLowerCase() === hint.subject);
+      if (!hintSubject) continue;
+      const chapter = hintSubject.chapters.find(ch => ch.name === hint.chapter);
+      if (!chapter) continue;
+      const matchRatio = matchedKeywords.length / hint.keywords.length;
+      const confidence = Math.min(95, 60 + Math.round(matchRatio * 35));
+      result.chaptersFound.push({ chapter: chapter.name, subject: hintSubject.name, confidence, keywords: matchedKeywords });
+      if (confidence > bestChapterConf) {
+        bestChapter = chapter;
+        bestChapterConf = confidence;
+        bestTopicName = hint.topic;
+        bestTopicConf = confidence - 5;
+      }
+    }
+  }
+
+  // Step B: Fall back to fuzzy chapter/topic detection
+  if (!bestChapter && result.subjectId) {
+    const targetSubject = subjects.find(s => s.id === result.subjectId);
+    if (targetSubject) {
+      const topicKeywordsFound = new Set();
+      const { chapter, confidence: chConf } = detectChapter(normalized, targetSubject, topicKeywordsFound);
+      if (chapter && chConf > bestChapterConf) {
+        bestChapter = chapter;
+        bestChapterConf = chConf;
+      }
+      if (chapter) {
+        const { topic, confidence: tConf } = detectTopic(normalized, chapter);
+        if (topic && tConf > bestTopicConf) {
+          bestTopicName = topic.name;
+          bestTopicConf = tConf;
+        }
+      }
+    }
+  }
+
+  // Step C: Extract topic from remaining text
+  if (!bestTopicName && bestChapter) {
+    let remaining = normalized;
+    if (result.subjectName) remaining = remaining.replace(new RegExp(normalizeForMatch(result.subjectName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '');
+    if (bestChapter.name) remaining = remaining.replace(new RegExp(normalizeForMatch(bestChapter.name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '');
+    remaining = remaining.replace(/\b(completed|finished|did|done|revised|revision|homework|tuition|school|chapter|topic|exercise|studied|covered|in|of|the|and|for|today|yesterday|now|then|just|i|we|they|he|she|has|have|had|was|were|been|being|am|is|are|be|will|would|can|could|shall|should|may|might|must|do|does|did|doing|done|gets|got|get|getting|a|an|the|this|that|these|those|at|by|to|from|on|off|with|without|after|before|during|until|till|since|about|around|between|among)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    for (const hint of CBSE_TOPIC_NAME_HINTS) {
+      if (hint.subject !== subjectKey) continue;
+      if (hint.chapter !== bestChapter.name) continue;
+      const wordsPresent = hint.keywords.filter(kw => remaining.includes(kw));
+      if (wordsPresent.length > 0) {
+        bestTopicName = hint.topic;
+        bestTopicConf = 50 + wordsPresent.length * 5;
+        break;
+      }
+    }
+    if (!bestTopicName && remaining.length > 2) {
+      const words = remaining.split(/\s+/).filter(w => w.length > 2);
+      if (words.length > 0) {
+        bestTopicName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        bestTopicConf = 35;
+      }
+    }
+  }
+
+  if (bestChapter) {
+    result.chapterId = bestChapter.id;
+    result.chapterName = bestChapter.name;
+    result.chapterConfidence = bestChapterConf;
+    if (bestTopicName) {
+      result.topicName = bestTopicName;
+      result.topicConfidence = bestTopicConf;
+      result.topicsFound.push({ name: bestTopicName, confidence: bestTopicConf });
+    }
+  }
+
+  // 5. HOMEWORK EXTRACTION - ONLY when explicitly mentioned
+  const hwExplicitPattern = /(?:homework|assignment|worksheet)\s*(?:is|:)?\s*(.+?)(?:\.|;|$)/i;
+  const hwMatch = transcript.match(hwExplicitPattern);
+  if (hwMatch) {
+    const hw = hwMatch[1]?.trim() || hwMatch[0]?.trim() || '';
+    if (hw.length > 0 && hw.length <= 60) {
+      result.homework = hw.charAt(0).toUpperCase() + hw.slice(1);
+    }
+  }
+
+  // 6. OVERALL CONFIDENCE
+  result.confidence = computeOverallConfidence(result.subjectConfidence, result.chapterConfidence, hasText);
+  result.needsConfirmation = result.confidence < 50 || (!result.subjectId && hasText) || needsMultiSubjectConfirm;
+  result.decisions = {
+    bestSubject: result.subjectName || '(none)',
+    bestChapter: result.chapterName || '(none)',
+    bestTopic: result.topicName || '(none)',
+    action: result.action || '(none)',
+    confidence: result.confidence,
+    needsConfirmation: result.needsConfirmation,
+    subjectsConsidered: result.subjectsFound,
+    chaptersConsidered: result.chaptersFound,
+    topicsConsidered: result.topicsFound
+  };
+  console.log("=== Parser Debug ===");
+  console.log("Transcript:", transcript);
+  console.log("Result:", result);
+  return result;
+}
+
+function createGeneratedPlan(state, now, methodology) {
+  const profile = state.plannerProfile || defaultState.plannerProfile;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  // ── Profile inputs ──────────────────────────────────────────────────────
+  const energyLevel = profile.energyLevel || 'normal';
+  const availableStudyTime = profile.availableStudyTime || 60;
+
+  const isTired = energyLevel === 'tired';
+  const isHighlyMotivated = energyLevel === 'highly_motivated';
+  const isNormal = energyLevel === 'normal';
+
+  // ── Determine study parameters from energy level + methodology ──────────
+  let baseBlock, breakLength, maxStudyTasks;
+  const method = methodology || 'balanced';
+
+  // Base params from energy level
+  if (isTired) {
+    baseBlock = 15;        // shorter focus
+    breakLength = 5;       // short breaks
+    maxStudyTasks = 2;     // fewer tasks
+  } else if (isHighlyMotivated) {
+    baseBlock = 35;        // deep focus
+    breakLength = 10;      // earned longer break
+    maxStudyTasks = 4;     // more tasks
+  } else {
+    baseBlock = 25;        // normal pomodoro
+    breakLength = 8;       // standard break
+    maxStudyTasks = 3;     // standard tasks
+  }
+
+  // Apply methodology modifiers
+  if (method === 'quick_wins') {
+    baseBlock = Math.min(baseBlock, 20);  // shorter blocks
+    breakLength = Math.max(breakLength, 5);
+    maxStudyTasks = Math.min(maxStudyTasks + 1, 5); // more tasks, smaller
+  } else if (method === 'deep_focus') {
+    baseBlock = Math.max(baseBlock, 35);  // longer blocks
+    breakLength = Math.max(breakLength, 10);
+    maxStudyTasks = Math.max(maxStudyTasks - 1, 1); // fewer tasks, deeper
+  } else if (method === 'cram_mode') {
+    baseBlock = 45;                        // max focus
+    breakLength = 3;                       // minimal breaks
+    maxStudyTasks = Math.min(maxStudyTasks + 2, 6);
+  }
+  // balanced: no changes
+
+  // Cap available minutes to user's declared available study time
+  const availableMinutes = Math.min(availableStudyTime, getStudyWindowMinutes(now));
 
   const { homeworkItems, backlogItems, revisionItems } = collectSubjectPlannerItems(state.subjects || []);
 
-  // Collect candidate tasks with priority score
+  // ── Candidate tasks ─────────────────────────────────────────────────────
   const candidates = [];
   const addCandidate = (task, priority) => {
     if (!task.title?.trim()) return;
@@ -301,211 +996,129 @@ function createGeneratedPlan(state, now) {
     }
   };
 
-  // After tuition: sleepy mode — light, short tasks only
-  if (afterTuition) {
-    // Light revision or easy homework — short, low effort
-    if (revisionItems[0]) {
-      addCandidate({
-        kind: 'revision',
-        title: `Light review - ${revisionItems[0].title}`,
-        label: 'Quick revision',
-        duration: 15
-      }, 5);
-    }
-    // Quick JEE practice (1-2 PYQs) — low effort
-    addCandidate({
-      kind: 'jee-practice',
-      title: 'Solve 2 JEE PYQs',
-      label: 'JEE practice',
-      duration: 15
-    }, 4);
-    // Planner homework if short
-    if (profile.homework?.trim()) {
-      addCandidate({
-        kind: 'planner-homework',
-        title: `${profile.homework.trim()} (quick)`,
-        label: 'Homework',
-        duration: 15
-      }, 3);
-    }
-    // If nothing else, just read school notes
-    if (profile.schoolProgress?.trim()) {
-      addCandidate({
-        kind: 'school',
-        title: 'Review today school notes',
-        label: 'School review',
-        duration: 15
-      }, 2);
-    }
-
-    candidates.sort((a, b) => b.priority - a.priority);
-    const studyTasks = candidates.slice(0, maxStudyTasks);
-    const planItems = [];
-    let startMinutes = currentMinutes;
-
-    studyTasks.forEach((task, index) => {
-      const taskDuration = Math.min(task.duration, Math.max(10, Math.floor(availableMinutes / Math.max(1, studyTasks.length - index))));
-      planItems.push({
-        id: `${task.kind}-${Date.now()}-${index}`,
-        title: task.title,
-        type: task.label,
-        duration: taskDuration,
-        time: formatMinutes(startMinutes),
-        kind: task.kind
-      });
-      startMinutes += taskDuration;
-      availableMinutes -= taskDuration;
-      if (index < studyTasks.length - 1) {
-        const actualBreak = Math.min(breakLength, Math.max(5, Math.floor(availableMinutes / (studyTasks.length - index - 1) * 0.25)));
-        planItems.push({
-          id: `break-${Date.now()}-${index}`,
-          title: `Break · ${actualBreak} min`,
-          type: 'Break',
-          duration: actualBreak,
-          time: formatMinutes(startMinutes),
-          kind: 'break'
-        });
-        startMinutes += actualBreak;
-        availableMinutes -= actualBreak;
-      }
-    });
-
-    const summaryParts = [];
-    const nowLabel = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    summaryParts.push(`Now ${nowLabel}`);
-    summaryParts.push(`Light session after tuition`);
-    if (profile.tiredMode) summaryParts.push('Tired Mode');
-
-    return {
-      generatedAt: now.toISOString(),
-      summary: summaryParts.join(' • '),
-      tasks: planItems
-    };
-  }
-
-  // Normal mode (not after tuition)
-  // School progress (what happened today) - priority: review school notes first
+  // 1) School progress review — high priority
   if (profile.schoolProgress?.trim()) {
     addCandidate({
       kind: 'school',
       title: `Review: ${profile.schoolProgress.trim()}`,
       label: 'School notes',
-      duration: afterTuition ? 15 : profile.tiredMode ? 15 : 20
-    }, 8);
+      duration: isTired ? 15 : baseBlock
+    }, 9);
   }
 
-  // Homework from planner profile - highest priority
+  // 2) Homework from planner profile — highest priority
   if (profile.homework?.trim()) {
     addCandidate({
       kind: 'planner-homework',
       title: profile.homework.trim(),
       label: 'Homework',
-      duration: baseBlock
+      duration: isTired ? 15 : baseBlock
     }, 10);
   }
 
-  // Homework items from subjects - high priority
+  // 3) Homework items from subject tracker
   homeworkItems.forEach((task, i) => {
     addCandidate({
       kind: 'homework',
       title: task.title,
       label: 'Homework',
       duration: baseBlock
-    }, 9 - i);
+    }, 8 - i);
   });
 
-  // JEE practice (Physics, Chemistry, Mathematics)
-  const jeeSubjects = ['physics', 'chemistry', 'mathematics', 'maths'];
-  state.subjects.forEach((subject) => {
-    const subjectLower = subject.name.toLowerCase();
-    if (jeeSubjects.some((js) => subjectLower.includes(js))) {
-      // Find topics with JEE marked as 'Pending' or 'Not started'
-      subject.chapters.forEach((chapter) => {
-        chapter.topics.forEach((topic) => {
-          if (topic.jee === 'Not started' || topic.jee === 'Pending') {
-            addCandidate({
-              kind: 'jee',
-              title: `${subject.name} JEE - ${topic.name}`,
-              label: 'JEE practice',
-              duration: profile.tiredMode ? 15 : 20
-            }, 6);
-          }
-        });
-      });
-    }
-  });
-
-  // If no specific JEE topics found, add generic JEE practice
-  const hasJeeTask = candidates.some((c) => c.kind === 'jee');
-  if (!hasJeeTask) {
-    addCandidate({
-      kind: 'jee',
-      title: 'JEE practice (PYQs)',
-      label: 'JEE practice',
-      duration: profile.tiredMode ? 15 : 20
-    }, 5);
-  }
-
-  // Backlog from planner profile
-  if (!profile.tiredMode && profile.backlog?.trim()) {
-    addCandidate({
-      kind: 'planner-backlog',
-      title: profile.backlog.trim(),
-      label: 'Backlog',
-      duration: baseBlock
-    }, 4);
-  }
-
-  // Backlog items from subjects
-  if (!profile.tiredMode && backlogItems[0]) {
-    addCandidate({
-      kind: 'backlog',
-      title: backlogItems[0].title,
-      label: 'Backlog',
-      duration: baseBlock
-    }, 3);
-  }
-
-  // Revision due from planner profile
+  // 4) Revision due
   if (profile.revisionDue?.trim()) {
     addCandidate({
       kind: 'planner-revision',
       title: profile.revisionDue.trim(),
       label: 'Revision',
-      duration: tuitionSoon ? 15 : profile.tiredMode ? 15 : 20
+      duration: isTired ? 15 : baseBlock
     }, 7);
   }
-
-  // Revision items from subjects (due topics)
   revisionItems.slice(0, 1).forEach((task, i) => {
     addCandidate({
       kind: 'revision',
       title: task.title,
       label: 'Revision due',
-      duration: tuitionSoon ? 15 : profile.tiredMode ? 15 : 20
-    }, 2 - i);
+      duration: isTired ? 15 : baseBlock
+    }, 6 - i);
   });
 
-  // Upcoming exams
+  // 5) JEE practice (if motivated / normal energy)
+  if (!isTired) {
+    const jeeSubjects = ['physics', 'chemistry', 'mathematics', 'maths'];
+    state.subjects.forEach((subject) => {
+      const subjectLower = subject.name.toLowerCase();
+      if (jeeSubjects.some((js) => subjectLower.includes(js))) {
+        subject.chapters.forEach((chapter) => {
+          chapter.topics.forEach((topic) => {
+            if (topic.jee === 'Not started' || topic.jee === 'Pending') {
+              addCandidate({
+                kind: 'jee',
+                title: `${subject.name} JEE - ${topic.name}`,
+                label: 'JEE practice',
+                duration: baseBlock
+              }, 5);
+            }
+          });
+        });
+      }
+    });
+    const hasJeeTask = candidates.some((c) => c.kind === 'jee');
+    if (!hasJeeTask) {
+      addCandidate({
+        kind: 'jee',
+        title: 'JEE practice (PYQs)',
+        label: 'JEE practice',
+        duration: baseBlock
+      }, 4);
+    }
+  }
+
+  // 6) Backlog (only if not tired)
+  if (!isTired) {
+    if (profile.backlog?.trim()) {
+      addCandidate({
+        kind: 'planner-backlog',
+        title: profile.backlog.trim(),
+        label: 'Backlog',
+        duration: baseBlock
+      }, 3);
+    }
+    if (backlogItems[0]) {
+      addCandidate({
+        kind: 'backlog',
+        title: backlogItems[0].title,
+        label: 'Backlog',
+        duration: baseBlock
+      }, 2);
+    }
+  }
+
+  // 7) Upcoming exams prep
   if (profile.upcomingExams?.trim()) {
     addCandidate({
       kind: 'exam',
       title: profile.upcomingExams.trim(),
       label: 'Exam prep',
-      duration: profile.tiredMode ? 15 : 20
+      duration: isTired ? 15 : baseBlock
     }, 1);
   }
 
-  // Sort by priority (highest first) and take the top N
+  // ── Prioritise and pick top tasks ───────────────────────────────────────
   candidates.sort((a, b) => b.priority - a.priority);
   const studyTasks = candidates.slice(0, maxStudyTasks);
 
-  // Build the plan with auto-inserted breaks
+  // ── Build timeline ──────────────────────────────────────────────────────
   const planItems = [];
   let startMinutes = currentMinutes;
+  let remainingMinutes = availableMinutes;
 
   studyTasks.forEach((task, index) => {
-    const taskDuration = Math.min(task.duration, Math.max(15, Math.floor(availableMinutes / Math.max(1, studyTasks.length - index))));
+    const taskDuration = Math.min(
+      task.duration,
+      Math.max(10, Math.floor(remainingMinutes / Math.max(1, studyTasks.length - index)))
+    );
     planItems.push({
       id: `${task.kind}-${Date.now()}-${index}`,
       title: task.title,
@@ -515,12 +1128,17 @@ function createGeneratedPlan(state, now) {
       kind: task.kind
     });
     startMinutes += taskDuration;
-    availableMinutes -= taskDuration;
+    remainingMinutes -= taskDuration;
 
     // Insert break between tasks
     if (index < studyTasks.length - 1) {
-      const actualBreak = Math.min(breakLength, Math.max(3, Math.floor(availableMinutes / (studyTasks.length - index - 1) * 0.2)));
-      const breakTitle = profile.tiredMode ? `Gentle break · ${actualBreak} min` : `Break · ${actualBreak} min`;
+      const actualBreak = Math.min(
+        breakLength,
+        Math.max(3, Math.floor(remainingMinutes / (studyTasks.length - index - 1) * 0.2))
+      );
+      const breakTitle = isTired
+        ? `Gentle break · ${actualBreak} min`
+        : `Break · ${actualBreak} min`;
       planItems.push({
         id: `break-${Date.now()}-${index}`,
         title: breakTitle,
@@ -530,20 +1148,17 @@ function createGeneratedPlan(state, now) {
         kind: 'break'
       });
       startMinutes += actualBreak;
-      availableMinutes -= actualBreak;
+      remainingMinutes -= actualBreak;
     }
   });
 
-  // Summary
+  // ── Summary ─────────────────────────────────────────────────────────────
   const summaryParts = [];
   const nowLabel = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   summaryParts.push(`Now ${nowLabel}`);
   summaryParts.push(`${Math.max(1, Math.ceil((startMinutes - currentMinutes) / 60))}h plan`);
-  if (isSaturday) summaryParts.push('Saturday • No tuition');
-  if (profile.recoveryMode) summaryParts.push('Recovery Mode');
-  if (profile.tiredMode) summaryParts.push('Tired Mode');
-  if (tuitionSoon) summaryParts.push('Tuition soon');
-  if (tuitionActive) summaryParts.push('In tuition');
+  if (isTired) summaryParts.push('Tired • Light session');
+  if (isHighlyMotivated) summaryParts.push('Highly motivated • Deep focus');
 
   return {
     generatedAt: now.toISOString(),
@@ -582,6 +1197,7 @@ function getRevisionItems(subjects) {
 
 function QuickUpdateCard({ state, setState }) {
   // Initialize with last remembered selections
+  const recognitionRef = useRef(null);
   const [draft, setDraft] = useState({
     transcript: '',
     subjectId: state.lastQuickSubjectId || '',
@@ -595,8 +1211,12 @@ function QuickUpdateCard({ state, setState }) {
     showConfirmation: false,
     extractedData: null
   });
-  const recognitionRef = useRef(null);
+  const retryCountRef = useRef(0);
+  const silenceTimerRef = useRef(null);
+  const finalTranscriptRef = useRef('');
   const interimRef = useRef('');
+  const userStoppedRef = useRef(false);
+  const isListeningRef = useRef(false);
 
   const selectedSubject = state.subjects.find((subject) => subject.id === draft.subjectId) || null;
   const selectedChapter = selectedSubject?.chapters.find((chapter) => chapter.id === draft.chapterId) || selectedSubject?.chapters[0] || null;
@@ -610,102 +1230,14 @@ function QuickUpdateCard({ state, setState }) {
   useEffect(() => {
     return () => {
       recognitionRef.current?.stop();
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     };
   }, []);
 
   const updateDraft = (patch) => setDraft((prev) => ({ ...prev, ...patch }));
 
-  const switchToManual = () => {
-    updateDraft({ mode: 'manual', note: '', isListening: false, extractedData: null, showConfirmation: false });
-    recognitionRef.current?.stop();
-  };
-
-  // Real voice capture using Web Speech API
-  const startVoiceCapture = () => {
-    if (!isSpeechAvailable) {
-      updateDraft({
-        mode: 'manual',
-        isListening: false,
-        note: 'Speech recognition is not available in this browser. Using manual entry instead.'
-      });
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-
-    let finalTranscript = '';
-
-    recognition.onresult = (event) => {
-      let interimTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          finalTranscript += result[0].transcript + ' ';
-        } else {
-          interimTranscript += result[0].transcript;
-        }
-      }
-      interimRef.current = interimTranscript;
-      updateDraft({ transcript: finalTranscript, note: '' });
-    };
-
-    recognition.onerror = (event) => {
-      if (event.error === 'not-allowed') {
-        updateDraft({
-          isListening: false,
-          mode: 'manual',
-          note: 'Microphone access denied. Please allow microphone access or use manual entry.'
-        });
-      } else if (event.error === 'no-speech') {
-        // Ignore — continue listening
-      } else {
-        updateDraft({
-          isListening: false,
-          mode: 'manual',
-          note: `Voice error: ${event.error}. Switching to manual entry.`
-        });
-      }
-    };
-
-    recognition.onend = () => {
-      // If we're still supposed to be listening, restart
-      if (draft.isListening) {
-        try {
-          recognition.start();
-        } catch {
-          // Ignore if already started
-        }
-      }
-    };
-
-    recognitionRef.current = recognition;
-
-    try {
-      recognition.start();
-      updateDraft({
-        isListening: true,
-        mode: 'voice',
-        note: '',
-        transcript: '',
-        showConfirmation: false,
-        extractedData: null
-      });
-    } catch {
-      updateDraft({
-        isListening: false,
-        mode: 'manual',
-        note: 'Could not start speech recognition. Using manual entry.'
-      });
-    }
-  };
-
-  // Stop listening and extract data from transcript
-  const stopVoiceCapture = () => {
-    recognitionRef.current?.stop();
-    const transcript = draft.transcript.trim();
+  const processTranscript = () => {
+    const transcript = (finalTranscriptRef.current || '').trim();
     if (!transcript) {
       updateDraft({
         isListening: false,
@@ -721,7 +1253,6 @@ function QuickUpdateCard({ state, setState }) {
 
     // Infer missing fields
     if (!extracted.subjectId) {
-      // Try harder: look for known subject names in the text
       const subjectMatch = state.subjects.find((s) =>
         confidenceCheck.includes(s.name.toLowerCase()) ||
         confidenceCheck.includes(s.name.toLowerCase().replace(/[^a-z]/g, ''))
@@ -745,13 +1276,11 @@ function QuickUpdateCard({ state, setState }) {
     if (extracted.subjectId && !extracted.chapterId) {
       const subject = state.subjects.find((s) => s.id === extracted.subjectId);
       if (subject?.chapters.length) {
-        // Find chapter by name in transcript
         const chapterMatch = subject.chapters.find((ch) =>
           confidenceCheck.includes(ch.name.toLowerCase())
         );
         extracted.chapterId = chapterMatch?.id || subject.lastChapterId || subject.chapters[0].id;
 
-        // Find topic within that chapter
         const targetChapter = subject.chapters.find((ch) => ch.id === extracted.chapterId);
         if (targetChapter) {
           const topicMatch = targetChapter.topics.find((t) =>
@@ -760,6 +1289,16 @@ function QuickUpdateCard({ state, setState }) {
           extracted.topicId = topicMatch?.id || targetChapter.topics[0].id;
         }
       }
+    }
+
+    // Check if the extracted topic already exists in the subject's chapter
+    let topicExistsInSubjects = true;
+    if (extracted.subjectId && extracted.chapterId && extracted.topicName) {
+      const subj = state.subjects.find(s => s.id === extracted.subjectId);
+      const chap = subj?.chapters.find(c => c.id === extracted.chapterId);
+      topicExistsInSubjects = chap?.topics.some(t =>
+        t.name.toLowerCase() === extracted.topicName.toLowerCase()
+      ) ?? false;
     }
 
     updateDraft({
@@ -772,8 +1311,176 @@ function QuickUpdateCard({ state, setState }) {
       topicId: extracted.topicId || draft.topicId,
       homework: extracted.homework || draft.homework,
       type: extracted.type || draft.type,
-      note: extracted.subjectId ? 'Review the extracted info below.' : 'Could not identify the subject. Please edit below.'
+      topicExistsInSubjects,
+      note: extracted.subjectId
+        ? topicExistsInSubjects
+          ? 'Review the extracted info below.'
+          : `Topic "${extracted.topicName}" is new. You can add it to the chapter.`
+        : 'Could not identify the subject. Please edit below.'
     });
+  };
+
+  // Voice capture using Web Speech API — stays alive with silence detection
+  const startVoiceCapture = () => {
+    if (!isSpeechAvailable) {
+      updateDraft({
+        mode: 'manual',
+        isListening: false,
+        note: 'Speech recognition is not available in this browser. Using manual entry instead.'
+      });
+      return;
+    }
+
+    // Clean up any previous instance
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch { /* ok */ }
+      recognitionRef.current = null;
+    }
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    let lastResultTime = Date.now();
+    finalTranscriptRef.current = '';
+
+    recognition.onstart = () => {
+      userStoppedRef.current = false;
+      isListeningRef.current = true;
+      lastResultTime = Date.now();
+      updateDraft({
+        isListening: true,
+        mode: 'voice',
+        note: '',
+        transcript: '',
+        showConfirmation: false,
+        extractedData: null
+      });
+    };
+
+    recognition.onresult = (event) => {
+      lastResultTime = Date.now();
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscriptRef.current += result[0].transcript + ' ';
+        } else {
+          interimTranscript += result[0].transcript;
+        }
+      }
+      interimRef.current = interimTranscript;
+      updateDraft({ transcript: finalTranscriptRef.current, note: '' });
+    };
+
+    recognition.onspeechstart = () => {
+      // Speech detected — user is speaking now
+    };
+
+    recognition.onerror = (event) => {
+      if (event.error === 'not-allowed') {
+        isListeningRef.current = false;
+        if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+        updateDraft({
+          isListening: false,
+          mode: 'manual',
+          note: 'Microphone access denied. Please allow microphone access or use manual entry.'
+        });
+      } else if (event.error === 'no-speech') {
+        if (userStoppedRef.current || !isListeningRef.current) return;
+        // Retry once on no-speech
+        if (!window.__speechRetryCount) window.__speechRetryCount = 0;
+        if (window.__speechRetryCount < 1) {
+          window.__speechRetryCount += 1;
+          try {
+            recognition.start();
+          } catch { /* ok */ }
+        } else {
+          window.__speechRetryCount = 0;
+          isListeningRef.current = false;
+          if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+          updateDraft({
+            isListening: false,
+            mode: 'manual',
+            note: 'No speech detected after 10 seconds. Please try again or use manual entry.'
+          });
+        }
+      } else {
+        isListeningRef.current = false;
+        if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+        updateDraft({
+          isListening: false,
+          mode: 'manual',
+          note: `Voice error: ${event.error}. Switching to manual entry.`
+        });
+      }
+    };
+
+    recognition.onend = () => {
+      if (userStoppedRef.current) {
+        // User intentionally stopped — process transcript
+        isListeningRef.current = false;
+        userStoppedRef.current = false;
+        if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+        processTranscript();
+        return;
+      }
+
+      // Not user-stopped: check if silence timeout has elapsed
+      if (isListeningRef.current) {
+        const silenceElapsed = Date.now() - lastResultTime;
+        if (silenceElapsed >= 10000) {
+          // Silence > 10s — auto-stop and process
+          isListeningRef.current = false;
+          if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+          processTranscript();
+        } else {
+          // Create a fresh recognition instance to avoid restart-loop issues
+          const newRecognition = new SpeechRecognition();
+          newRecognition.continuous = true;
+          newRecognition.interimResults = true;
+          newRecognition.lang = 'en-US';
+          // Copy event handlers
+          newRecognition.onstart = recognition.onstart;
+          newRecognition.onspeechstart = recognition.onspeechstart;
+          newRecognition.onresult = recognition.onresult;
+          newRecognition.onerror = recognition.onerror;
+          newRecognition.onend = recognition.onend;
+          recognitionRef.current = newRecognition;
+          try {
+            newRecognition.start();
+          } catch {
+            isListeningRef.current = false;
+            if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+          }
+        }
+      }
+    };
+
+    recognitionRef.current = recognition;
+
+    try {
+      recognition.start();
+    } catch {
+      updateDraft({
+        isListening: false,
+        mode: 'manual',
+        note: 'Could not start speech recognition. Using manual entry.'
+      });
+    }
+  };
+
+  // Stop listening and extract data from transcript
+  const stopVoiceCapture = () => {
+    userStoppedRef.current = true;
+    isListeningRef.current = false;
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+    recognitionRef.current?.stop();
   };
 
   // When subject changes, auto-select first chapter and topic
@@ -882,7 +1589,7 @@ function QuickUpdateCard({ state, setState }) {
           onClick={draft.isListening ? stopVoiceCapture : startVoiceCapture}
           style={draft.isListening ? { background: 'linear-gradient(135deg, #ef4444, #dc2626)' } : {}}
         >
-          {draft.isListening ? '■ Done Listening' : '🎤 Start Voice'}
+          {draft.isListening ? '■ Stop Listening' : '🎤 Start Voice'}
         </button>
         <button className="ghost-btn" onClick={() => updateDraft({ mode: 'manual', showConfirmation: false, extractedData: null })}>
           Manual Entry
@@ -896,7 +1603,7 @@ function QuickUpdateCard({ state, setState }) {
             <div className="voice-active">
               <p className="muted" style={{ marginBottom: 8 }}>
                 <span className="chip" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5' }}>● Listening</span>
-                Speak naturally. Tap <strong>"■ Done Listening"</strong> when finished.
+Speak naturally. It will auto-stop after 10 seconds of silence, or tap <strong>"■ Stop Listening"</strong>.
               </p>
               <p className="muted" style={{ fontSize: '0.85rem' }}>
                 Example: "Physics completed Current Electricity till Kirchhoff's Law. Maths tuition completed Maxima and Minima."
@@ -982,6 +1689,52 @@ function QuickUpdateCard({ state, setState }) {
                   </select>
                 </label>
               </div>
+
+              {/* Show add-topic button if the spoken topic is not in the subject's chapter */}
+              {!draft.topicExistsInSubjects && draft.extractedData?.topicName && (
+                <div className="inline-actions compact-actions" style={{ marginTop: 4 }}>
+                  <button className="primary-btn" onClick={() => {
+                    // Add the new topic to the selected chapter
+                    const topicName = draft.extractedData.topicName;
+                    const subj = state.subjects.find(s => s.id === draft.subjectId);
+                    const chap = subj?.chapters.find(c => c.id === draft.chapterId);
+                    if (subj && chap) {
+                      const newTopicId = `topic-${Date.now() + 100}`;
+                      const newTopic = {
+                        id: newTopicId,
+                        name: topicName,
+                        schoolNotes: 'Not started',
+                        homework: 'Not started',
+                        revision: 'Not started',
+                        mcq: 'Not started',
+                        tuitionNotes: 'Not started',
+                        jee: 'Not started',
+                        pyqs: 'Not started',
+                        practiceQuestions: 'Not started'
+                      };
+                      const nextSubjects = state.subjects.map(s => {
+                        if (s.id !== subj.id) return s;
+                        return {
+                          ...s,
+                          chapters: s.chapters.map(c => {
+                            if (c.id !== chap.id) return c;
+                            return { ...c, topics: [...c.topics, newTopic] };
+                          })
+                        };
+                      });
+                      updateStateAndPersist(state, { subjects: nextSubjects }, setState);
+                      // Update draft topicId to the new one
+                      updateDraft({
+                        topicId: newTopicId,
+                        topicExistsInSubjects: true,
+                        note: `Topic "${topicName}" added! Now you can save.`
+                      });
+                    }
+                  }} style={{ background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)' }}>
+                    + Add "{draft.extractedData.topicName}" topic
+                  </button>
+                </div>
+              )}
 
               <div className="inline-actions compact-actions">
                 <button className="primary-btn" onClick={saveQuickUpdate}>Confirm & Save</button>
@@ -1119,13 +1872,13 @@ function HomePage({ state, setState, focusProps, handleStartEvening }) {
 
       <QuickUpdateCard state={state} setState={setState} />
 
-      <section className="card-grid">
+        <section className="card-grid">
         <div className="card">
           <div className="card-top">
-            <h3>Continue Yesterday</h3>
+            <h3>Open Tasks</h3>
             <span className="chip">{remaining} left</span>
           </div>
-          <p className="muted">Pick up from your previous session and finish the open tasks.</p>
+          <p className="muted">Finish your remaining tasks from the study plan.</p>
           <button className="secondary-btn" onClick={() => navigate('/planner')}>
             Open planner
           </button>
@@ -1133,8 +1886,8 @@ function HomePage({ state, setState, focusProps, handleStartEvening }) {
 
         <div className="card">
           <div className="card-top">
-            <h3>Today's 3 Tasks</h3>
-            <span className="chip">Live</span>
+            <h3>Today's Tasks</h3>
+            <span className="chip">Quick add</span>
           </div>
           <div className="stack">
             <div className="inline-actions">
@@ -1206,63 +1959,100 @@ function HomePage({ state, setState, focusProps, handleStartEvening }) {
 function PlannerPage({ state, setState }) {
   const navigate = useNavigate();
   const plannerProfile = state.plannerProfile || defaultState.plannerProfile;
+  const [methodology, setMethodology] = useState(state.plannerMethodology || 'balanced');
   const updateProfile = (patch) => {
     updateStateAndPersist(state, {
       plannerProfile: { ...plannerProfile, ...patch }
     }, setState);
   };
 
-  const generatePlan = () => {
-    const nextPlan = createGeneratedPlan({ ...state, plannerProfile }, new Date());
-    updateStateAndPersist(state, { generatedPlan: nextPlan }, setState);
+  const generatePlan = (method) => {
+    const activeMethod = method || methodology;
+    const nextPlan = createGeneratedPlan({ ...state, plannerProfile }, new Date(), activeMethod);
+    updateStateAndPersist(state, {
+      generatedPlan: nextPlan,
+      plannerMethodology: activeMethod
+    }, setState);
   };
+
+  const methodologyOptions = [
+    { value: 'balanced', label: 'Balanced', desc: 'Standard study blocks with regular breaks' },
+    { value: 'quick_wins', label: 'Quick wins', desc: 'Short blocks, many small tasks' },
+    { value: 'deep_focus', label: 'Deep focus', desc: 'Longer blocks, fewer tasks, longer breaks' },
+    { value: 'cram_mode', label: 'Cram mode', desc: 'Max focus, minimal breaks' }
+  ];
+
+  const currentMethodMeta = methodologyOptions.find(m => m.value === methodology) || methodologyOptions[0];
 
   return (
     <div className="page-stack">
       <section className="card">
         <div className="card-top">
-          <h3>Today's plan</h3>
-          <span className="chip">Fast start</span>
+          <h3>Evening setup</h3>
+          <span className="chip">Profile</span>
         </div>
         <div className="stack">
           <label className="inline-stack">
             <span>What happened today?</span>
             <textarea value={plannerProfile.schoolProgress} onChange={(e) => updateProfile({ schoolProgress: e.target.value })} placeholder="Physics completed Current Electricity. Maths tuition completed Maxima and Minima." />
           </label>
+          <label className="inline-stack">
+            <span>Homework due</span>
+            <textarea value={plannerProfile.homework} onChange={(e) => updateProfile({ homework: e.target.value })} placeholder="Maths worksheet, Physics assignment..." />
+          </label>
+          <label className="inline-stack">
+            <span>Backlog / pending work</span>
+            <textarea value={plannerProfile.backlog} onChange={(e) => updateProfile({ backlog: e.target.value })} placeholder="Old homework, incomplete notes..." />
+          </label>
+          <label className="inline-stack">
+            <span>Revision due</span>
+            <textarea value={plannerProfile.revisionDue} onChange={(e) => updateProfile({ revisionDue: e.target.value })} placeholder="Topics to review from last week..." />
+          </label>
           <div className="input-row">
-            <label className="inline-stack compact">
-              <span>Maths tuition</span>
-              <input type="time" value={plannerProfile.tuitionMaths} onChange={(e) => updateProfile({ tuitionMaths: e.target.value })} />
+            <label className="inline-stack compact" style={{ flex: 1 }}>
+              <span>Available study time</span>
+              <select value={plannerProfile.availableStudyTime} onChange={(e) => updateProfile({ availableStudyTime: Number(e.target.value) })}>
+                <option value={30}>30 min</option>
+                <option value={60}>1 hour</option>
+                <option value={120}>2 hours</option>
+                <option value={180}>3+ hours</option>
+              </select>
             </label>
-            <label className="inline-stack compact">
-              <span>Physics tuition</span>
-              <input type="time" value={plannerProfile.tuitionPhysics} onChange={(e) => updateProfile({ tuitionPhysics: e.target.value })} />
+            <label className="inline-stack compact" style={{ flex: 1 }}>
+              <span>Energy level</span>
+              <select value={plannerProfile.energyLevel} onChange={(e) => updateProfile({ energyLevel: e.target.value })}>
+                <option value="tired">Tired</option>
+                <option value="normal">Normal</option>
+                <option value="highly_motivated">Highly Motivated</option>
+              </select>
             </label>
           </div>
-          <div className="toggle-row">
-            <label>
-              <input type="checkbox" checked={plannerProfile.recoveryMode} onChange={(e) => updateProfile({ recoveryMode: e.target.checked })} />
-              <span>Recovery Mode</span>
+          <div className="input-row">
+            <label className="inline-stack compact" style={{ flex: 1 }}>
+              <span>Study methodology</span>
+              <select value={methodology} onChange={(e) => setMethodology(e.target.value)}>
+                {methodologyOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </label>
-            <label>
-              <input type="checkbox" checked={plannerProfile.tiredMode} onChange={(e) => updateProfile({ tiredMode: e.target.checked })} />
-              <span>Tired Mode</span>
-            </label>
-            <label>
-              <input type="checkbox" checked={plannerProfile.moreStudyMode} onChange={(e) => updateProfile({ moreStudyMode: e.target.checked })} />
-              <span>More study</span>
-            </label>
+            <div className="inline-stack compact" style={{ flex: 1, justifyContent: 'center' }}>
+              <span className="muted" style={{ fontSize: '0.8rem' }}>{currentMethodMeta.desc}</span>
+            </div>
           </div>
           <div className="inline-actions">
-            <button className="primary-btn" onClick={generatePlan}>Generate plan</button>
-            <button className="secondary-btn" onClick={() => updateProfile({ schoolProgress: '', homework: '', backlog: '', revisionDue: '', upcomingExams: '', tuitionMaths: '', tuitionPhysics: '', recoveryMode: false, tiredMode: false, moreStudyMode: false })}>Reset</button>
+            <button className="primary-btn" onClick={() => generatePlan()}>Generate plan</button>
+            <button className="secondary-btn" onClick={() => {
+              updateProfile({ schoolProgress: '', homework: '', backlog: '', revisionDue: '', upcomingExams: '', availableStudyTime: 60, energyLevel: 'normal' });
+              setMethodology('balanced');
+            }}>Reset</button>
           </div>
         </div>
       </section>
 
       <section className="card">
         <div className="card-top">
-          <h3>Today's plan</h3>
+          <h3>Generated plan</h3>
           {state.generatedPlan?.summary ? <span className="chip">{state.generatedPlan.summary}</span> : null}
         </div>
         {state.generatedPlan?.tasks?.length ? (
@@ -1270,6 +2060,22 @@ function PlannerPage({ state, setState }) {
             <p className="muted">Your plan is ready. Start the focus timer when you are set.</p>
             <div className="inline-actions compact-actions">
               <button className="primary-btn" onClick={() => navigate('/revision')}>Start focus</button>
+              <button className="secondary-btn" onClick={() => generatePlan(methodology)}>
+                ↻ Regenerate with {currentMethodMeta.label}
+              </button>
+              {methodologyOptions.filter(m => m.value !== methodology).map((opt) => (
+                <button
+                  key={opt.value}
+                  className="ghost-btn"
+                  onClick={() => {
+                    setMethodology(opt.value);
+                    generatePlan(opt.value);
+                  }}
+                  title={opt.desc}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </>
         ) : null}
@@ -1643,32 +2449,6 @@ function RevisionPage({ state, setState, focusProps }) {
 
       <section className="card">
         <div className="card-top">
-          <h3>Due for review</h3>
-          <span className="chip">{dueItems.length} ready</span>
-        </div>
-        {dueItems.length ? (
-          <div className="revision-list">
-            {dueItems.map((item) => (
-              <article className="revision-card" key={`${item.subjectId}-${item.chapterId}-${item.topicId}`}>
-                <div>
-                  <strong>{item.topicName}</strong>
-                  <p>{item.subjectName} · {item.chapterName}</p>
-                </div>
-                <div className="inline-actions compact-actions">
-                  <button className="secondary-btn" onClick={() => handleConfidence(item.subjectId, item.chapterId, item.topicId, 'Easy')}>Easy</button>
-                  <button className="secondary-btn" onClick={() => handleConfidence(item.subjectId, item.chapterId, item.topicId, 'Okay')}>Okay</button>
-                  <button className="ghost-btn" onClick={() => handleConfidence(item.subjectId, item.chapterId, item.topicId, 'Forgot')}>Forgot</button>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="muted">No topics are due right now. Great work.</p>
-        )}
-      </section>
-
-      <section className="card">
-        <div className="card-top">
           <h3>Weak topics</h3>
           <span className="chip">{weakItems.length} needs attention</span>
         </div>
@@ -1696,6 +2476,16 @@ function RevisionPage({ state, setState, focusProps }) {
   );
 }
 
+function Toast({ message, icon }) {
+  if (!message) return null;
+  return (
+    <div className="toast">
+      <span className="toast-icon">{icon || '✔'}</span>
+      <span>{message}</span>
+    </div>
+  );
+}
+
 function SettingsPage({ state, setState }) {
   const [examDate, setExamDate] = useState(state.examDate);
   const [timerMinutes, setTimerMinutes] = useState(state.timerMinutes);
@@ -1705,6 +2495,11 @@ function SettingsPage({ state, setState }) {
   const [monthlyReflectionText, setMonthlyReflectionText] = useState(state.monthlyReflection?.text || '');
   const [notice, setNotice] = useState('');
   const fileInputRef = useRef(null);
+
+  // Sync dark mode to CSS
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', state.darkMode ? 'dark' : 'light');
+  }, [state.darkMode]);
 
   const saveSettings = () => {
     updateStateAndPersist(state, { examDate, timerMinutes: Number(timerMinutes) || 25, todayNote }, setState);
@@ -1904,7 +2699,7 @@ function SettingsPage({ state, setState }) {
         <input ref={fileInputRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={restoreBackup} />
       </section>
 
-      {notice ? <p className="muted">{notice}</p> : null}
+      <Toast message={notice} />
     </div>
   );
 }
@@ -1913,11 +2708,16 @@ function App() {
   const [state, setState] = useState(readState);
   const navigate = useNavigate();
 
+  // Sync dark mode to CSS on initial load
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', state.darkMode ? 'dark' : 'light');
+  }, [state.darkMode]);
+
   // Shared focus timer state
   const planTasks = useMemo(() => (state.generatedPlan?.tasks || []).filter((t) => t.kind !== 'break'), [state.generatedPlan]);
   const [focusIndex, setFocusIndex] = useState(0);
   const currentTask = planTasks[focusIndex] || null;
-  const defaultStudySeconds = (currentTask?.duration || 25) * 60;
+  const defaultStudySeconds = (currentTask?.duration || state.timerMinutes || 25) * 60;
   const defaultBreakSeconds = 5 * 60;
 
   const [focusState, setFocusState] = useState({
@@ -2039,3 +2839,4 @@ function App() {
 }
 
 export default App;
+
